@@ -8,7 +8,7 @@ const common = require('./common/common')
 
 
 /**
- * 프로파일 지정   
+ * 프로파일 지정  테스트
  * 윈도우 : set NODE_ENV=local&&npm start로 실행
  * 리눅스 : export NODE_ENV=local&&npm start로 실행
  */
