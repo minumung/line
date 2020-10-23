@@ -54,9 +54,32 @@ app.use(express.static(path.join(__dirname, 'public')));
  * 라우터 설정
  */
 var indexRouter = require('./routes/index.route');
-var boardRoutes = require('./routes/admin.route');
+var adminRoutes = require('./routes/admin.route');
+
+var areaRoutes = require('./routes/area.route');
+var bookingRoutes = require('./routes/booking.route');
+var bookmarkRoutes = require('./routes/bookmark.route');
+var cardRoutes = require('./routes/card.route');
+var manegerRoutes = require('./routes/maneger.route');
+var memberRoutes = require('./routes/member.route');
+var paymentRoutes = require('./routes/payment.route');
+var playRoutes = require('./routes/play.route');
+var stadiumRoutes = require('./routes/stadium.route');
+
 app.use('/', indexRouter);
-app.use('/api/v1/admin', boardRoutes);
+app.use('/api/v1/admin', adminRoutes);
+
+app.use('/api/v1/area', areaRoutes);
+app.use('/api/v1/booking', bookingRoutes);
+app.use('/api/v1/bookmark', bookmarkRoutes);
+app.use('/api/v1/card', cardRoutes);
+app.use('/api/v1/maneger', manegerRoutes);
+app.use('/api/v1/member', memberRoutes);
+app.use('/api/v1/payment', paymentRoutes);
+app.use('/api/v1/play', playRoutes);
+app.use('/api/v1/stadium', stadiumRoutes);
+
+
 
 
 /**
