@@ -1,8 +1,11 @@
 const service = require('../service/booking.service');
+const cardService = require('../service/card.service');
 const playService = require('../service/play.service');
 const response = require('../infra/vars')
+const env_data = require('../infra/env_data')
 const commonJwt = require('../common/common_jwt');
-
+const request = require('request-promise-native');
+const crypto = require('crypto');
 
 
 /**
@@ -41,6 +44,8 @@ exports.list = async (req, res) => {
  */
 exports.create = async (req, res) => {
   const resData = {};
+  const resCard = {};
+  const resPlay = {};
   const token = await commonJwt.tokenCheck(req.headers.authorization);
   
   if(!token){
@@ -62,7 +67,55 @@ exports.create = async (req, res) => {
     return res.status(400).send(response);
   }
 
-  const record = await service.create(req.body, token);
+  const read = await cardService.is_payment(token);
+  if(read.length) {
+    Object.assign(resCard, read[0]);
+  }else{
+    response.message = "대표 결제카드를 등록해주세요.";
+    return res.status(400).send(response);
+  }
+
+
+  /**
+   * 어세스 토큰 가져오기
+   */
+  const getToken = await request({
+    url: 'https://api.iamport.kr/users/getToken',
+    method: 'POST',
+    headers: { "Content-Type": "application/json" },
+    form: {
+        imp_key: env_data.impkey,
+        imp_secret: env_data.impsecret,
+    },
+    json: true,
+  })
+
+  const play_read = await playService.read(req.body);
+  if(play_read.length) {
+    Object.assign(resPlay, play_read[0]);
+  }
+
+  const merchant_uid = crypto.randomBytes(40).toString('hex');
+  var real_price = resPlay.price*cnt;
+  const paymentresult = await request({
+    method: 'POST',
+    url: 'https://api.iamport.kr/subscribe/payments/again',
+    headers: { "Authorization": getToken.response.access_token },
+    form: {
+      customer_uid: resCard.card_key,
+      merchant_uid: merchant_uid,
+      amount: real_price,
+      name: resPlay.play_day + " " + resPlay.start_time + "(" + resPlay.name + " " + resPlay.detail_name + ")",
+    },
+    json: true,
+  })
+  console.log(paymentresult)
+  if (paymentresult.code != '0') {
+      response.message = paymentresult.message;
+      return res.status(400).send(response);
+  }
+
+  const record = await service.create(req.body, token, paymentresult.response);
   if(record[1]){
     response.success = true;
   }
@@ -75,6 +128,7 @@ exports.create = async (req, res) => {
  */
 exports.delete = async (req, res) => {
   const resData = {};
+  const resImpuid = {};
   const token = await commonJwt.tokenCheck(req.headers.authorization);
   
   if(!token){
@@ -105,6 +159,40 @@ exports.delete = async (req, res) => {
     return res.status(400).send(response);
   }
   
+
+  const impuids = await service.impuids(req.body, token);
+  if(impuids.length) {
+    Object.assign(resImpuid, impuids[0]);
+  }
+
+  /**
+   * 어세스 토큰 가져오기
+   */
+  const getToken = await request({
+    url: 'https://api.iamport.kr/users/getToken',
+    method: 'POST',
+    headers: { "Content-Type": "application/json" },
+    form: {
+        imp_key: env_data.impkey,
+        imp_secret: env_data.impsecret,
+    },
+    json: true,
+  })
+  const cancelresult = await request({
+    method: 'POST',
+    url: 'https://api.iamport.kr/payments/cancel',
+    headers: { "Authorization": getToken.response.access_token },
+    form: {
+      imp_uid: resImpuid.imp_uid,
+    },
+    json: true,
+  })
+  console.log(cancelresult)
+
+  if(cancelresult.code != '0'){
+    response.message = cancelresult.message;
+    return res.status(400).send(response);
+  }
 
   const record = await service.delete(req.body, token);
   if(record[1]){

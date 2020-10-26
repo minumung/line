@@ -7,17 +7,6 @@ const resData = {};
  * 리스트
  */
 exports.list = async (req, res) => {
-
-  /**
-   * 토큰체크
-   */
-  const token = await commonJwt.tokenCheck(req.headers.authorization);
-  
-  if(!token){
-    response.message = "사용자인증 토큰이 잘못되었습니다.";
-    return res.status(400).send(response);
-  }
-
   const list = await accountService.list(req.body);
   response.success = true;
   response.data = list;

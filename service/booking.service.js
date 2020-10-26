@@ -112,13 +112,13 @@ exports.booking_cnt = async (body) => {
 
 
 //예약하기
-exports.create = async ( body, token ) => {
+exports.create = async ( body, token, payment) => {
     var query = `
-      insert into booking(member_seq, play_seq, create_dt) 
+      insert into booking(member_seq, play_seq, create_dt, imp_uid) 
       values
     `;
     for(var i = 0 ; i < body.cnt ; i++){
-        query+=`( '${token.member_seq}', '${body.play_seq}', now()),`;  
+        query+=`( '${token.member_seq}', '${body.play_seq}', now(), '${payment.imp_uid}'),`;  
     }  
     query = query.substring(0, (query.length-1));
     var rstData = await models.sequelize.query(query, {
@@ -129,13 +129,36 @@ exports.create = async ( body, token ) => {
 };
 
 
+//예약취소 imp_uid 가져오기   
+exports.impuids = async ( body, token ) => {
+  var query = `
+    select
+      imp_uid
+    from
+      booking
+    where
+      show_yn = 'Y' and
+      delete_yn = 'N' and
+      is_cancel = 'N' and
+      play_seq = ${body.play_seq} and
+      member_seq = ${token.member_seq}
+    group by
+      imp_uid
+  `;
+  var rstData = await models.sequelize.query(query, {
+    type: models.sequelize.QueryTypes.SELECT,
+    raw: true,
+  });
+  return rstData;
+};
+
 //예약취소
 exports.delete = async ( body, token ) => {
   var query = `
     update
       booking
     set
-      delete_yn = 'Y'
+      is_cancel = 'Y'
     where
       play_seq = ${body.play_seq} and
       member_seq = ${token.member_seq}
@@ -147,3 +170,5 @@ exports.delete = async ( body, token ) => {
   });
   return rstData;
 };
+
+
